@@ -36,3 +36,39 @@
   - 支持 Web 应用、Electron 桌面应用、CLI 工具
   - 测试覆盖：Golden path / Edge cases / Regression / UI-UX / Performance
   - 测试报告：通过率统计 + 失败详情 + Bug 列表
+
+## [2.0.0] — 2026-05-11
+
+### `/functional-test` 全面升级
+
+- **深度应用分析**
+  - Web：路由/导航/表单/API 调用结构化识别
+  - Electron：IPC handlers/托盘/设置/数据持久化识别
+  - CLI：子命令/参数定义/错误处理/管道识别
+  - 输出"可测试功能清单"，不再死套模板
+
+- **持久化测试结果**
+  - JSON 格式保存到 `.claude/test-results/test-run-{date}.json`
+  - 维护 `test-latest.json` 指向最新结果
+
+- **回归对比（`--regression`）**
+  - 读取 `test-latest.json` 作为基线
+  - 对比标注：FIXED / REGRESSED / STILL_FAIL / NEW
+  - 输出通过率变化趋势
+
+- **参数化控制**
+  - `--scope` 指定模块范围
+  - `--priority` 按优先级筛选
+  - `--module` 按功能模块筛选
+  - `--output` 自定义输出路径
+  - `--type` 专项测试（accessibility/api/performance/visual/security）
+
+- **专项测试类型**
+  - accessibility：alt 文本、tab 顺序、aria 属性
+  - api：状态码、超时、重试
+  - performance：加载时间、响应时间、大数据渲染
+  - visual：布局溢出、元素重叠
+  - security：XSS、未加密传输、敏感信息暴露
+
+- **新增辅助脚本**：`scripts/compare-results.sh`
+- **新增参考文档**：`references/testing-patterns.md`

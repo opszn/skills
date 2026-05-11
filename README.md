@@ -77,24 +77,46 @@ Systematic code audit for any project, covering security, architecture, quality,
 
 Generate test plans, execute tests, and produce test reports.
 
-**Four work modes:**
+**Work modes:**
 
 | Mode | Description |
 |------|-------------|
-| `plan` | Analyze app structure, generate test matrix |
-| `execute` | Execute tests from plan |
-| `regression` | Re-run historical tests, compare results |
-| `report` | Generate test summary report |
+| (default) | Analyze app → generate plan → execute → report |
+| `--plan` | Analyze app structure, generate test matrix |
+| `--execute` | Execute tests from plan |
+| `--regression` | Re-run historical tests, compare results |
+| `--report` | Generate test summary report |
+
+**Parameters:**
+
+| Flag | Description |
+|------|-------------|
+| `--scope src/login` | Test only specified module/directory |
+| `--priority P0` | Test only specified priority |
+| `--module 登录,设置` | Test only specified feature modules |
+| `--output report.md` | Save report to custom path |
+| `--type accessibility` | Specialized test type (accessibility/api/performance/visual/security) |
 
 **Examples:**
 
 ```bash
-/functional-test               # Generate plan and execute
-/functional-test --plan        # Generate plan only
-/functional-test --regression  # Regression test
+/functional-test                    # Full test cycle
+/functional-test --plan             # Generate plan only
+/functional-test --scope settings   # Test only settings module
+/functional-test --regression       # Regression test with comparison
+/functional-test --type api         # API-focused testing
 ```
 
-**Coverage:** Golden Path / Edge Cases / Regression / UI-UX / Performance Baseline
+**Coverage:** Golden Path / Edge Cases / Regression / UI-UX / Performance Baseline / Specialized Tests
+
+**New capabilities (v2.0.0):**
+
+| Capability | Description |
+|------------|-------------|
+| Deep app analysis | Structured analysis of routes/forms/APIs/IPC before test generation |
+| Persistent results | Test results saved to `.claude/test-results/` as JSON |
+| Regression comparison | `--regression` compares against baseline, marks fixed/new failures |
+| Specialized tests | `--type accessibility/api/performance/visual/security` |
 
 ## Project Structure
 
@@ -116,9 +138,12 @@ ai-dev-skills/
 │   │       └── quality-checklist.md    # Code quality
 │   └── functional-test/
 │       ├── SKILL.md          # Functional test skill
-│       └── references/       # Templates
+│       ├── scripts/          # Helper scripts
+│       │   └── compare-results.sh # Regression comparison
+│       └── references/       # Templates and patterns
 │           ├── test-plan-template.md   # Test plan templates
-│           └── bug-report-template.md  # Bug report template
+│           ├── bug-report-template.md  # Bug report template
+│           └── testing-patterns.md     # Testing patterns per app type
 └── docs/
     └── changelog.md          # Version history
 ```
@@ -177,4 +202,14 @@ Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 生成测试计划、执行功能测试、产出测试报告。
 
-**覆盖维度：** Golden Path / Edge Cases / Regression / UI-UX / Performance Baseline
+**新增能力（v2.0.0）：**
+
+| 能力 | 说明 |
+|------|------|
+| 深度应用分析 | 测试前结构化分析路由/表单/API/IPC，生成可测试功能清单 |
+| 持久化测试结果 | 结果以 JSON 格式保存到 `.claude/test-results/` |
+| 回归对比 | `--regression` 对比基线，标注已修复/新失败/持续失败 |
+| 参数化控制 | `--scope` / `--priority` / `--module` / `--type` 灵活筛选 |
+| 专项测试 | `--type accessibility/api/performance/visual/security` |
+
+**覆盖维度：** Golden Path / Edge Cases / Regression / UI-UX / Performance Baseline / 专项测试
