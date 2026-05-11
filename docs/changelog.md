@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.1.0] — 2026-05-11
+
+### `/code-audit` 新增三大能力
+
+- **持久化报告输出**
+  - 审计结果自动保存到 `.claude/audit-reports/audit-report-{date}.md`
+  - 维护 `audit-latest.md` 指向最新报告
+  - 支持 `--output <path>` 保存到指定路径
+
+- **修复验证（`--verify`）**
+  - 读取上次审计报告，针对每条发现重新执行对应的 grep 检查
+  - 支持 `--verify --finding <N>` 验证单条发现
+  - 输出 FIXED / FAILING / MODIFIED 状态
+
+- **SAST 自动执行**
+  - 自动检测并运行 npm audit / semgrep / pip-audit / govulncheck / cargo audit
+  - 解析结构化结果（JSON），并入审计报告
+  - 支持 `--sast` 模式仅执行依赖扫描
+  - 新增辅助脚本：`scripts/run-sast.sh`、`scripts/verify-finding.sh`
+
+- **新增作用域参数**：`--output`、`--verify`、`--sast`
+
 ## [1.0.0] — 2026-05-11
 
 ### 首次发布

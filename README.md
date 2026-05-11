@@ -48,10 +48,20 @@ cp -r skills/functional-test ~/.claude/skills/
 /code-audit                    # 完整审计当前项目
 /code-audit --quick            # 快速扫描
 /code-audit --security         # 安全专项审计
+/code-audit --verify           # 验证上次审计的修复结果
+/code-audit --sast             # 仅执行 SAST 依赖扫描
 帮我审计一下这个项目的代码      # 自然语言触发
 ```
 
 **输出：** 严重度分级发现列表 + 项目画像 + 修复优先级建议
+
+**新增能力（v1.1.0）：**
+
+| 能力 | 说明 |
+|------|------|
+| 持久化报告 | 审计结果自动保存到 `.claude/audit-reports/` |
+| 修复验证 | `/code-audit --verify` 验证问题是否已修复 |
+| SAST 自动执行 | 自动检测并运行 npm audit / semgrep / pip-audit / govulncheck |
 
 ### `/functional-test` — 功能测试
 
@@ -89,6 +99,9 @@ ai-dev-skills/
 ├── skills/
 │   ├── code-audit/
 │   │   ├── SKILL.md          # 代码审计技能主文件
+│   │   ├── scripts/          # 辅助脚本
+│   │   │   ├── run-sast.sh       # SAST 自动执行
+│   │   │   └── verify-finding.sh # 修复验证
 │   │   └── references/       # 检查清单（审计时自动加载）
 │   │       ├── security-checklist.md   # OWASP Top 10 安全检查
 │   │       └── quality-checklist.md    # 代码质量检查
