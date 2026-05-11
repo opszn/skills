@@ -5,8 +5,8 @@
     "email": "lingsheng@users.noreply.github.com"
   },
   "metadata": {
-    "description": "代码审计与功能测试技能插件 — 适用于任何编程语言的 Web、桌面和 CLI 应用",
-    "version": "1.0.0"
+    "description": "Code audit + functional testing skills — for web, desktop, and CLI apps in any language",
+    "version": "1.1.0"
   },
   "plugins": [
     {

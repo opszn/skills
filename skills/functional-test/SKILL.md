@@ -3,7 +3,10 @@ name: functional-test
 description: "When the user asks for functional testing, feature testing, regression testing, test plan generation, or mentions '功能测试', '回归测试', '测试计划', '验收测试'. Generates test plans, executes tests, and produces reports for web, desktop, and CLI applications."
 version: 1.0.0
 license: MIT
+author: opszn
 user-invocable: true
+tags: [testing, functional-test, regression, qa, test-plan]
+compatibility: [claude-code]
 ---
 
 # Functional Test

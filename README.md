@@ -1,33 +1,156 @@
 # AI Dev Skills
 
-Claude Code 双技能插件 — 代码审计 + 功能测试，适用于任意编程语言的 Web、桌面和 CLI 应用。
+Claude Code skills plugin — **code audit** + **functional testing**, for web, desktop and CLI applications in any programming language.
 
-## 安装
+[中文文档](#中文文档)
 
-### 方式一：从 GitHub 安装（推荐）
+## Installation
 
-```
-/plugin install github:lingsheng/ai-dev-skills
-```
-
-### 方式二：本地安装
+### Method 1: From GitHub (Recommended)
 
 ```bash
-git clone https://github.com/lingsheng/ai-dev-skills.git
-cd ai-dev-skills
+/plugin install github:opszn/claude-code-audit
+```
+
+### Method 2: Local Install
+
+```bash
+git clone https://github.com/opszn/claude-code-audit.git
+cd claude-code-audit
 /plugin install ./
 ```
 
-### 方式三：手动安装
+### Method 3: Manual
 
-将 `skills/` 目录复制到项目的 `.claude/skills/` 下：
+Copy the `skills/` directory to your project's `.claude/skills/` directory:
 
 ```bash
 cp -r skills/code-audit ~/.claude/skills/
 cp -r skills/functional-test ~/.claude/skills/
 ```
 
-## 技能列表
+## Skills
+
+### `/code-audit` — Code Audit
+
+Systematic code audit for any project, covering security, architecture, quality, and performance.
+
+**Four audit modes:**
+
+| Mode | Use Case | Time |
+|------|----------|------|
+| `quick` | Fast scan for obvious issues | < 2 min |
+| `full` | Full depth audit (default) | 5-15 min |
+| `security` | OWASP Top 10 focused | 5-10 min |
+| `quality` | Code quality / smells | 3-8 min |
+
+**Scope control:**
+
+| Flag | Description |
+|------|-------------|
+| (none) | Smart scan: Top 20 largest files + entry points |
+| `--scope src/` | Audit specific directory |
+| `--scope main.js` | Audit specific file |
+| `--diff` | Audit last 5 commits only |
+| `--full` | Full scan of all source files |
+| `--sarif` | Also output SARIF 2.1 JSON |
+| `--output report.md` | Save report to custom path |
+| `--verify` | Verify fixes from last audit |
+| `--verify --finding 1` | Verify a specific finding |
+| `--sast` | SAST-only scan (dependencies) |
+
+**Examples:**
+
+```bash
+/code-audit                    # Full audit (smart scan)
+/code-audit --quick            # Quick scan
+/code-audit --security         # Security-focused audit
+/code-audit --scope src/api/   # Audit only API directory
+/code-audit --diff             # Audit recent changes
+/code-audit --verify           # Verify last audit's findings
+/code-audit --sast             # Dependency vulnerability scan only
+```
+
+**Output:** Severity-graded findings with confidence scores, CWE IDs, exploit scenarios, fix effort estimates, and actionable remediation roadmap. Reports are automatically saved to `.claude/audit-reports/`.
+
+### `/functional-test` — Functional Testing
+
+Generate test plans, execute tests, and produce test reports.
+
+**Four work modes:**
+
+| Mode | Description |
+|------|-------------|
+| `plan` | Analyze app structure, generate test matrix |
+| `execute` | Execute tests from plan |
+| `regression` | Re-run historical tests, compare results |
+| `report` | Generate test summary report |
+
+**Examples:**
+
+```bash
+/functional-test               # Generate plan and execute
+/functional-test --plan        # Generate plan only
+/functional-test --regression  # Regression test
+```
+
+**Coverage:** Golden Path / Edge Cases / Regression / UI-UX / Performance Baseline
+
+## Project Structure
+
+```
+ai-dev-skills/
+├── .claude-plugin/
+│   ├── plugin.json           # Plugin metadata
+│   └── marketplace.json      # Marketplace registration
+├── README.md                 # This file
+├── LICENSE                   # MIT
+├── skills/
+│   ├── code-audit/
+│   │   ├── SKILL.md          # Code audit skill
+│   │   ├── scripts/          # Helper scripts
+│   │   │   ├── run-sast.sh       # SAST auto-execution
+│   │   │   └── verify-finding.sh # Fix verification
+│   │   └── references/       # Checklists
+│   │       ├── security-checklist.md   # OWASP Top 10
+│   │       └── quality-checklist.md    # Code quality
+│   └── functional-test/
+│       ├── SKILL.md          # Functional test skill
+│       └── references/       # Templates
+│           ├── test-plan-template.md   # Test plan templates
+│           └── bug-report-template.md  # Bug report template
+└── docs/
+    └── changelog.md          # Version history
+```
+
+## Contributing
+
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+### Adding a New Skill
+1. Create a directory under `skills/`
+2. Create `SKILL.md` with YAML frontmatter
+3. Add reference docs under `references/`
+4. Update `.claude-plugin/marketplace.json`
+
+### Improving Existing Skills
+1. Keep SKILL.md under 500 lines
+2. Move detailed content to `references/`
+3. Update `docs/changelog.md`
+
+## License
+
+[MIT](LICENSE)
+
+---
+
+## 中文文档
+
+### 安装
+
+```bash
+/plugin install github:opszn/claude-code-audit
+```
 
 ### `/code-audit` — 代码审计
 
@@ -42,19 +165,6 @@ cp -r skills/functional-test ~/.claude/skills/
 | `security` | OWASP Top 10 安全专项 | 5-10 分钟 |
 | `quality` | 代码质量专项 | 3-8 分钟 |
 
-**使用示例：**
-
-```
-/code-audit                    # 完整审计当前项目
-/code-audit --quick            # 快速扫描
-/code-audit --security         # 安全专项审计
-/code-audit --verify           # 验证上次审计的修复结果
-/code-audit --sast             # 仅执行 SAST 依赖扫描
-帮我审计一下这个项目的代码      # 自然语言触发
-```
-
-**输出：** 严重度分级发现列表 + 项目画像 + 修复优先级建议
-
 **新增能力（v1.1.0）：**
 
 | 能力 | 说明 |
@@ -67,68 +177,4 @@ cp -r skills/functional-test ~/.claude/skills/
 
 生成测试计划、执行功能测试、产出测试报告。
 
-**四种工作模式：**
-
-| 模式 | 说明 |
-|------|------|
-| `plan` | 分析应用结构，生成测试矩阵 |
-| `execute` | 按测试计划逐项执行 |
-| `regression` | 重新运行历史测试，对比结果 |
-| `report` | 生成测试总结报告 |
-
-**使用示例：**
-
-```
-/functional-test               # 生成测试计划并执行
-/functional-test --plan        # 仅生成测试计划
-/functional-test --regression  # 回归测试
-帮这个应用做个功能测试           # 自然语言触发
-```
-
 **覆盖维度：** Golden Path / Edge Cases / Regression / UI-UX / Performance Baseline
-
-## 项目结构
-
-```
-ai-dev-skills/
-├── .claude-plugin/
-│   ├── plugin.json           # 插件元数据
-│   └── marketplace.json      # Marketplace 注册信息
-├── README.md                 # 本文件
-├── LICENSE                   # MIT
-├── skills/
-│   ├── code-audit/
-│   │   ├── SKILL.md          # 代码审计技能主文件
-│   │   ├── scripts/          # 辅助脚本
-│   │   │   ├── run-sast.sh       # SAST 自动执行
-│   │   │   └── verify-finding.sh # 修复验证
-│   │   └── references/       # 检查清单（审计时自动加载）
-│   │       ├── security-checklist.md   # OWASP Top 10 安全检查
-│   │       └── quality-checklist.md    # 代码质量检查
-│   └── functional-test/
-│       ├── SKILL.md          # 功能测试技能主文件
-│       └── references/       # 模板（测试时自动加载）
-│           ├── test-plan-template.md   # 按应用类型的测试计划模板
-│           └── bug-report-template.md  # Bug 报告模板
-└── docs/
-    └── changelog.md          # 版本历史
-```
-
-## 贡献
-
-欢迎提交 Issue 和 Pull Request。
-
-### 新增技能
-1. 在 `skills/` 下创建新目录
-2. 创建 `SKILL.md`，包含 YAML frontmatter
-3. 在 `references/` 下添加参考文档
-4. 更新 `.claude-plugin/marketplace.json`
-
-### 改进现有技能
-1. SKILL.md 保持在 500 行以内
-2. 详细内容放到 `references/` 目录
-3. 更新 `docs/changelog.md`
-
-## License
-
-[MIT](LICENSE)
