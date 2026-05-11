@@ -1,0 +1,20 @@
+{
+  "name": "ai-dev-skills",
+  "owner": {
+    "name": "零升",
+    "email": "lingsheng@users.noreply.github.com"
+  },
+  "metadata": {
+    "description": "代码审计与功能测试技能插件 — 适用于任何编程语言的 Web、桌面和 CLI 应用",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "ai-dev-skills",
+      "source": "./",
+      "description": "提供 /code-audit（代码审计）和 /functional-test（功能测试）两个技能，覆盖安全、质量、架构、性能审查和应用级功能验证",
+      "category": "software-development",
+      "tags": ["code-review", "security", "testing", "quality", "audit"]
+    }
+  ]
+}

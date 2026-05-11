@@ -1,0 +1,13 @@
+{
+  "name": "ai-dev-skills",
+  "description": "代码审计 + 功能测试双技能插件，支持多语言项目的代码质量审查和功能验证",
+  "version": "1.0.0",
+  "author": {
+    "name": "零升",
+    "url": "https://github.com/lingsheng"
+  },
+  "homepage": "https://github.com/lingsheng/ai-dev-skills",
+  "repository": "https://github.com/lingsheng/ai-dev-skills",
+  "license": "MIT",
+  "keywords": ["code-audit", "functional-test", "security", "testing", "code-review"]
+}
