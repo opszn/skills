@@ -1,6 +1,6 @@
 # AI Dev Skills
 
-Claude Code skills plugin — **code audit** + **functional testing**, for web, desktop and CLI applications in any programming language.
+Claude Code skills plugin — **code audit** + **functional testing** + **deep writing**, for web, desktop and CLI applications in any programming language.
 
 [中文文档](#中文文档)
 
@@ -27,6 +27,7 @@ Copy the `skills/` directory to your project's `.claude/skills/` directory:
 ```bash
 cp -r skills/code-audit ~/.claude/skills/
 cp -r skills/functional-test ~/.claude/skills/
+cp -r skills/deep-writing ~/.claude/skills/
 ```
 
 ## Skills
@@ -187,13 +188,12 @@ ai-dev-skills/
 │   │       ├── test-plan-template.md   # Test plan templates
 │   │       ├── bug-report-template.md  # Bug report template
 │   │       └── testing-patterns.md     # Testing patterns per app type
-│   └── writing/
-│       └── deep-writing/
-│           ├── SKILL.md          # Deep writing skill
-│           ├── scripts/          # Helper scripts
-│           │   └── write-draft.sh    # Draft version management
-│           └── references/       # Reference materials
-│               └── ai-patterns-zh.md # Chinese AI writing fingerprints
+│   ├── deep-writing/
+│   │   ├── SKILL.md          # Deep writing skill
+│   │   ├── scripts/          # Helper scripts
+│   │   │   └── write-draft.sh    # Draft version management
+│   │   └── references/       # Reference materials
+│   │       └── ai-patterns-zh.md # Chinese AI writing fingerprints
 └── docs/
     └── changelog.md          # Version history
 ```
