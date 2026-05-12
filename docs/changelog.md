@@ -72,3 +72,31 @@
 
 - **新增辅助脚本**：`scripts/compare-results.sh`
 - **新增参考文档**：`references/testing-patterns.md`
+
+## [2.0.0] — 2026-05-11 (writing)
+
+### `/深度写作` 全新发布
+
+- **解耦内部依赖**
+  - 默认输出 markdown 文件到 `writing-drafts/`
+  - 语雀发布作为可选插件（`--publish yuque`）
+  - 支持 clipboard 输出
+
+- **AI 去痕审查**
+  - 扫描 50+ 中文 AI 写作指纹模式（8 大类别）
+  - 逐项标记并建议替换，不机械替换
+  - 新增参考文档：`references/ai-patterns-zh.md`
+
+- **文风档案学习**
+  - 从 2-3 篇用户文章中提取文风特征
+  - 保存到 `.claude/writing-voice.json`
+  - 后续写作匹配用户真实文风
+
+- **三轮修订流程**
+  - 4a 起草：案例驱动，保存到草稿目录
+  - 4b 审查：分级审查（Critical/Significant/Minor）
+  - 4c 润色：标题、开头钩子、金句、节奏检查
+
+- **新增辅助脚本**：`scripts/write-draft.sh`（草稿版本管理）
+
+- **新增参数**：`--output`、`--publish`、`--voice`、`--no-review`

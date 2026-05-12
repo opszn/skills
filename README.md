@@ -118,6 +118,48 @@ Generate test plans, execute tests, and produce test reports.
 | Regression comparison | `--regression` compares against baseline, marks fixed/new failures |
 | Specialized tests | `--type accessibility/api/performance/visual/security` |
 
+### `/深度写作` — Deep Writing
+
+Write publishable deep-thinking articles from real experiences and observations.
+
+**Workflow:**
+
+```
+Trigger event → Research (Agent) → Structure → Draft → Review → Polish → Output
+```
+
+**Three-phase revision:**
+
+| Phase | Description |
+|-------|-------------|
+| 4a: Draft | Case-driven writing, saved to `writing-drafts/` |
+| 4b: Review | Graded review (Critical/Significant/Minor) + AI fingerprint scan |
+| 4c: Polish | Title, opening hooks, golden quote, rhythm check |
+
+**Parameters:**
+
+| Flag | Description |
+|------|-------------|
+| `--output markdown` | Save as .md file (default) |
+| `--output clipboard` | Copy to clipboard |
+| `--output yuque` | Publish to Yuque (requires Yuque MCP) |
+| `--publish yuque` | Explicitly publish to Yuque |
+| `--voice sample.md` | Provide writing samples for voice learning |
+| `--no-review` | Skip review, output draft directly |
+
+**AI dehumanization:** Scans 50+ Chinese AI writing fingerprint patterns across 8 categories (excessive emphasis, empty引导, mechanical parallelism, modifier stacking, vague conclusions, hedging, template openings, transition cliches) and suggests replacements.
+
+**Voice profile:** Learns from 2-3 user writing samples, extracts sentence length, paragraph structure, tone, avoided words, preferred transitions. Saved to `.claude/writing-voice.json`.
+
+**Examples:**
+
+```bash
+/深度写作 AI依赖悖论
+/深度写作 话题=Vibe Coding的风险 风格=行业观察
+/深度写作 自动化运维的陷阱 --output clipboard
+/深度写作 话题=AI工具选择 风格=技术反思 --publish yuque
+```
+
 ## Project Structure
 
 ```
@@ -127,6 +169,7 @@ ai-dev-skills/
 │   └── marketplace.json      # Marketplace registration
 ├── README.md                 # This file
 ├── LICENSE                   # MIT
+├── CONTRIBUTING.md           # Contribution guidelines
 ├── skills/
 │   ├── code-audit/
 │   │   ├── SKILL.md          # Code audit skill
@@ -136,14 +179,21 @@ ai-dev-skills/
 │   │   └── references/       # Checklists
 │   │       ├── security-checklist.md   # OWASP Top 10
 │   │       └── quality-checklist.md    # Code quality
-│   └── functional-test/
-│       ├── SKILL.md          # Functional test skill
-│       ├── scripts/          # Helper scripts
-│       │   └── compare-results.sh # Regression comparison
-│       └── references/       # Templates and patterns
-│           ├── test-plan-template.md   # Test plan templates
-│           ├── bug-report-template.md  # Bug report template
-│           └── testing-patterns.md     # Testing patterns per app type
+│   ├── functional-test/
+│   │   ├── SKILL.md          # Functional test skill
+│   │   ├── scripts/          # Helper scripts
+│   │   │   └── compare-results.sh # Regression comparison
+│   │   └── references/       # Templates and patterns
+│   │       ├── test-plan-template.md   # Test plan templates
+│   │       ├── bug-report-template.md  # Bug report template
+│   │       └── testing-patterns.md     # Testing patterns per app type
+│   └── writing/
+│       └── 深度写作/
+│           ├── SKILL.md          # Deep writing skill
+│           ├── scripts/          # Helper scripts
+│           │   └── write-draft.sh    # Draft version management
+│           └── references/       # Reference materials
+│               └── ai-patterns-zh.md # Chinese AI writing fingerprints
 └── docs/
     └── changelog.md          # Version history
 ```
@@ -213,3 +263,39 @@ Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 | 专项测试 | `--type accessibility/api/performance/visual/security` |
 
 **覆盖维度：** Golden Path / Edge Cases / Regression / UI-UX / Performance Baseline / 专项测试
+
+### `/深度写作` — 深度写作
+
+从真实经历出发，撰写可发布的深度思考文章。
+
+**执行流程：**
+
+```
+触发事件 → 深度研究（Agent） → 结构设计 → 起草 → 审查 → 润色 → 输出
+```
+
+**三轮修订：**
+
+| 阶段 | 说明 |
+|------|------|
+| 4a 起草 | 案例驱动写作，保存到 `writing-drafts/` |
+| 4b 审查 | 分级审查（Critical/Significant/Minor）+ AI 去痕扫描 |
+| 4c 润色 | 标题、开头钩子、金句、节奏检查 |
+
+**新增能力（v2.0.0）：**
+
+| 能力 | 说明 |
+|------|------|
+| 解耦语雀 | 默认输出 markdown 文件，语雀作为可选插件 |
+| AI 去痕审查 | 扫描 50+ 中文 AI 写作指纹模式，逐项标记并建议替换 |
+| 文风档案 | 从 2-3 篇用户文章中学习文风，保存到 `.claude/writing-voice.json` |
+| 分级修订流程 | 起草 → 审查 → 润色三轮迭代 |
+
+**使用示例：**
+
+```bash
+/深度写作 AI依赖悖论
+/深度写作 话题=Vibe Coding的风险 风格=行业观察
+/深度写作 自动化运维的陷阱 --output clipboard
+/深度写作 话题=AI工具选择 风格=技术反思 --publish yuque
+```
