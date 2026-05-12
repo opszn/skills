@@ -118,7 +118,7 @@ Generate test plans, execute tests, and produce test reports.
 | Regression comparison | `--regression` compares against baseline, marks fixed/new failures |
 | Specialized tests | `--type accessibility/api/performance/visual/security` |
 
-### `/深度写作` — Deep Writing
+### `/deep-writing` — Deep Writing
 
 Write publishable deep-thinking articles from real experiences and observations.
 
@@ -188,7 +188,7 @@ ai-dev-skills/
 │   │       ├── bug-report-template.md  # Bug report template
 │   │       └── testing-patterns.md     # Testing patterns per app type
 │   └── writing/
-│       └── 深度写作/
+│       └── deep-writing/
 │           ├── SKILL.md          # Deep writing skill
 │           ├── scripts/          # Helper scripts
 │           │   └── write-draft.sh    # Draft version management
@@ -264,7 +264,7 @@ Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 **覆盖维度：** Golden Path / Edge Cases / Regression / UI-UX / Performance Baseline / 专项测试
 
-### `/深度写作` — 深度写作
+### `/deep-writing` — 深度写作
 
 从真实经历出发，撰写可发布的深度思考文章。
 

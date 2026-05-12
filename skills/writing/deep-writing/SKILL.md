@@ -1,5 +1,5 @@
 ---
-name: 深度写作
+name: deep-writing
 description: "Write publishable deep-thinking articles from real experiences. Supports agent research, AI dehumanization review, voice profile learning, and multi-phase revision. Outputs to markdown, clipboard, or Yuque."
 version: 2.0.0
 license: MIT
@@ -9,7 +9,7 @@ tags: [writing, article, blog, deep-thinking, content-creation, chinese]
 compatibility: [claude-code]
 ---
 
-# 深度写作 / Deep Writing
+# Deep Writing / 深度写作
 
 Write publishable deep-thinking articles from real experiences and observations.
 

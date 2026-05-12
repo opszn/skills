@@ -9,169 +9,165 @@ tags: [testing, functional-test, regression, qa, test-plan, accessibility, api-t
 compatibility: [claude-code]
 ---
 
-# Functional Test
+# Functional Test / 功能测试
 
+Generate test plans, execute functional tests, and produce reports for any application. Supports persistent result storage and regression comparison.
 为任意应用生成测试计划、执行功能测试、产出测试报告。支持持久化结果存储和回归对比。
 
-## 触发条件
+## Trigger Conditions / 触发条件
 
-用户提到以下关键词时自动触发：functional test, feature test, regression test, test plan, 功能测试, 回归测试, 测试计划, 验收测试, 测试应用
-用户手动调用：`/functional-test`
+Auto-trigger on: functional test, feature test, regression test, test plan, 功能测试, 回归测试, 测试计划, 验收测试, 测试应用
+Manual: `/functional-test`
 
-## 测试模式与参数
+## Modes & Parameters / 测试模式与参数
 
-### 模式
+### Modes
 
-| 模式 | 触发词 | 说明 |
-|------|--------|------|
-| (默认) | 功能测试、测试应用 | 分析应用 → 生成计划 → 执行 → 报告 |
-| `--plan` | 生成测试计划 | 分析应用结构，生成测试矩阵 |
-| `--execute` | 执行测试 | 按现有计划或新生成计划执行 |
-| `--regression` | 回归测试 | 对比上次测试结果，标注变化 |
-| `--report` | 测试报告 | 生成测试总结报告 |
+| Mode | Trigger | Description |
+|------|---------|-------------|
+| (default) | 功能测试, 测试应用 | Analyze app → generate plan → execute → report |
+| `--plan` | 生成测试计划 | Analyze app structure, generate test matrix |
+| `--execute` | 执行测试 | Execute tests from existing or newly generated plan |
+| `--regression` | 回归测试 | Compare against last test run, mark changes |
+| `--report` | 测试报告 | Generate test summary report only |
 
-### 参数
+### Parameters
 
 ```
-/functional-test --scope src/login     # 只测试指定模块/目录
-/functional-test --priority P0         # 只测试指定优先级
-/functional-test --module 登录,设置    # 只测试指定功能模块
-/functional-test --output report.md    # 保存到指定路径
-/functional-test --type accessibility  # 专项测试类型
+/functional-test --scope src/login     # Test only specified module/directory
+/functional-test --priority P0         # Test only specified priority
+/functional-test --module 登录,设置    # Test only specified feature modules
+/functional-test --output report.md    # Save to custom path
+/functional-test --type accessibility  # Specialized test type
 ```
 
-**--type 专项测试**：
+**--type Specialized Tests**:
 
-| 类型 | 检查内容 |
-|------|----------|
-| `accessibility` | alt 文本、tab 顺序、对比度、aria 属性、键盘导航 |
-| `api` | API 状态码、超时、重试、请求/响应格式 |
-| `performance` | 页面加载、API 响应、大数据渲染 |
-| `visual` | 布局溢出、元素重叠、文字截断、响应式 |
-| `security` | XSS 注入、未加密传输、敏感信息暴露 |
+| Type | Checks |
+|------|--------|
+| `accessibility` | alt text, tab order, contrast, aria attributes, keyboard navigation |
+| `api` | Status codes, timeouts, retry logic, request/response format |
+| `performance` | Page load, API response, large data rendering |
+| `visual` | Layout overflow, element overlap, text truncation, responsive |
+| `security` | XSS injection, unencrypted transport, sensitive data exposure |
 
-## 测试流程
+## Test Workflow / 测试流程
 
-### Phase 0: 参数解析
+### Phase 0: Parameter Resolution
 
-解析用户传入的模式和参数，确定测试范围、优先级、输出路径、专项类型。
+Parse mode and parameters to determine test scope, priority, output path, and specialized types.
 
-### Phase 1: 深度应用分析
+### Phase 1: Deep App Analysis
 
-识别应用类型和可测试功能点，输出"可测试功能清单"。
+Identify app type and testable features, output a "Testable Feature Checklist".
 
-**Web 应用**：
+**Web Apps**:
 ```bash
-# 路由/页面结构
+# Routes/pages
 grep -rn 'route\|path\|<Route\|createBrowserRouter\|react-router\|vue-router' --include='*.js' --include='*.ts' --include='*.tsx' --include='*.jsx' --include='*.vue' src/ 2>/dev/null | head -50
-# 导航元素
+# Navigation
 grep -rn 'nav-\|sidebar\|menu-item\|data-nav\|<Link ' --include='*.html' --include='*.tsx' --include='*.jsx' --include='*.vue' . 2>/dev/null | head -30
-# 表单元素
+# Forms
 grep -rn '<form\|<input\|<select\|<textarea\|onSubmit\|handleSubmit\|v-model' --include='*.html' --include='*.tsx' --include='*.jsx' --include='*.vue' . 2>/dev/null | head -50
-# API 调用
+# API calls
 grep -rn 'fetch(\|axios\|\.get(\|\.post(\|/api/' --include='*.js' --include='*.ts' . 2>/dev/null | head -50
 ```
 
-**Electron 桌面应用**：
+**Electron Desktop Apps**:
 ```bash
 # IPC handlers
 grep -rn 'ipcMain.handle\|ipcRenderer.invoke\|ipcRenderer.on' --include='*.js' --include='*.ts' . 2>/dev/null
-# 导航/UI 结构
+# Navigation/UI
 grep -rn 'data-nav\|sidebar-item\|tab-\|settings-pane\|settings-tab' --include='*.html' --include='*.js' . 2>/dev/null | head -30
-# 设置项
+# Settings
 grep -rn 'settings\|preference\|config' --include='*.js' --include='*.ts' --include='*.json' . 2>/dev/null | grep -v node_modules | head -30
-# 数据持久化
+# Persistence
 grep -rn 'localStorage\|sessionStorage\|fs\.write\|store\.set' --include='*.js' --include='*.ts' . 2>/dev/null | head -20
-# 托盘/窗口
+# Tray/window
 grep -rn 'Tray\|BrowserWindow\|setBounds\|setTitle' --include='*.js' --include='*.ts' . 2>/dev/null | head -20
 ```
 
-**CLI 工具**：
+**CLI Tools**:
 ```bash
-# 子命令
+# Subcommands
 grep -rn 'command\|subcommand\|addCommand\|program\.command' --include='*.js' --include='*.ts' --include='*.py' . 2>/dev/null | head -20
-# 参数定义
+# Arguments
 grep -rn '\.option\|--\|\.argument\|argparse' --include='*.js' --include='*.ts' --include='*.py' . 2>/dev/null | head -30
-# 错误处理
+# Error handling
 grep -rn 'process\.exit\|sys\.exit\|throw\|raise' --include='*.js' --include='*.ts' --include='*.py' . 2>/dev/null | head -20
 ```
 
-分析结果整理为：模块列表、每个模块的可测试交互点（按钮、表单、API 调用等）、数据流。
+Analysis results organized into: module list, testable interaction points per module (buttons, forms, API calls), data flow.
 
-### Phase 2: 生成测试计划
+### Phase 2: Generate Test Plan
 
-基于 Phase 1 的"可测试功能清单"生成测试矩阵。
+Generate test matrix from Phase 1's "Testable Feature Checklist".
 
-**测试覆盖维度**：
+**Coverage Dimensions**:
 
-1. **Golden Path** — 正常用户流程，每个交互点至少 1 条
-2. **Edge Cases** — 空数据、超长输入、特殊字符、网络断开、权限不足
-3. **Regression** — 历史失败用例自动纳入
-4. **UI/UX** — 响应式、主题切换、加载状态、错误提示
-5. **Performance Baseline** — 页面加载 < 2s、操作响应 < 500ms、列表 > 1000 项不卡顿
-6. **专项测试**（--type 指定时）
+1. **Golden Path** — Normal user flow, at least 1 per interaction point
+2. **Edge Cases** — Empty data, oversized input, special chars, network disconnect, insufficient permissions
+3. **Regression** — Historical failure cases auto-included
+4. **UI/UX** — Responsive, theme switching, loading states, error messages
+5. **Performance Baseline** — Page load < 2s, response < 500ms, lists > 1000 items without lag
+6. **Specialized** (when --type specified)
 
-**生成规则**：
+**Generation Rules**:
+- Each identified module gets at least 2 test cases (1 Golden + 1 Edge Case)
+- Login, payment, data-saving flows auto-labeled P0
+- Secondary features P1, optimization suggestions P2
+- Filter by `--scope` / `--module` / `--priority` if specified
 
-- 每个识别出的功能模块至少 2 条用例（1 Golden + 1 Edge Case）
-- 登录、支付、数据保存等核心流程自动标 P0
-- 次要功能标 P1，优化建议标 P2
-- 如用户指定 `--scope` / `--module` / `--priority`，按条件过滤
-
-**测试计划输出格式**：
-
+**Test Plan Output**:
 ```markdown
-## 测试计划 — {应用名}
+## Test Plan — {app}
 
-### 应用画像
-- 类型: Web / Electron / CLI
-- 识别模块: X 个（登录、设置、数据...）
-- 识别交互点: X 个（表单、按钮、API...）
+### App Profile
+- Type: Web / Electron / CLI
+- Identified modules: X (login, settings, data...)
+- Identified interaction points: X (forms, buttons, APIs...)
 
-### 测试矩阵
+### Test Matrix
 
-| ID | 模块 | 测试项 | 类型 | 步骤 | 预期结果 | 优先级 |
-|----|------|--------|------|------|----------|--------|
-| T001 | 登录 | 正常登录 | Golden Path | 1. 输入正确用户名密码 2. 点击登录 | 跳转到首页 | P0 |
-| T002 | 登录 | 错误密码 | Edge Case | 1. 输入正确用户名 2. 输入错误密码 3. 点击登录 | 显示错误提示 | P1 |
+| ID | Module | Test Item | Type | Steps | Expected | Priority |
+|----|--------|-----------|------|-------|----------|----------|
+| T001 | Login | Normal login | Golden Path | 1. Enter valid creds 2. Click login | Redirect to home | P0 |
+| T002 | Login | Wrong password | Edge Case | 1. Valid user 2. Wrong password 3. Click login | Show error message | P1 |
 
-### 统计
-- 总用例: X
-- P0 (阻塞): X | P1 (重要): X | P2 (一般): X
+### Statistics
+- Total: X | P0 (blocker): X | P1 (important): X | P2 (normal): X
 - Golden Path: X | Edge Cases: X | UI/UX: X | Performance: X
 ```
 
-生成计划后展示给用户确认，确认后再执行。
+Show plan to user for confirmation before execution.
 
-### Phase 3: 执行测试
+### Phase 3: Execute Tests
 
-逐项执行测试计划，记录结果。
+Execute test plan item by item, record results.
 
-**执行方式**：
+**Execution Methods**:
+- Use Chrome DevTools MCP for page state and UI verification
+- Use CLI commands for backend behavior and exit codes
+- `mcp__chrome-devtools__take_snapshot` for UI state checks
+- `mcp__chrome-devtools__click` / `mcp__chrome-devtools__fill` for interactions
+- Record error screenshots, console logs, network requests on failure
 
-- 使用浏览器工具（Chrome DevTools MCP）验证页面状态和交互
-- 使用 CLI 命令验证后端行为和退出码
-- 使用 `mcp__chrome-devtools__take_snapshot` 检查 UI 状态
-- 使用 `mcp__chrome-devtools__click` / `mcp__chrome-devtools__fill` 执行操作
-- 记录失败时的错误截图、控制台日志、网络请求
-
-**结果记录**：
-
+**Result Recording**:
 ```markdown
-| ID | 状态 | 实际结果 | 备注 |
-|----|------|----------|------|
-| T001 | PASS | 跳转到首页 | - |
-| T002 | FAIL | 无错误提示，直接报错 500 | 见 BUG-001 |
+| ID | Status | Actual Result | Notes |
+|----|--------|--------------|-------|
+| T001 | PASS | Redirected to home | - |
+| T002 | FAIL | No error message, returns 500 | See BUG-001 |
 ```
 
-执行规则：
-- BLOCKER 级问题立即停止并报告
-- MANUAL 标记无法自动验证的用例（如视觉检查），提供检查要点
-- 记录实际结果与预期结果的差异
+Rules:
+- BLOCKER issues: stop immediately and report
+- MANUAL: mark un-automatable cases (e.g., visual checks), provide checkpoints
+- Record difference between actual and expected results
 
-### Phase 3.5: 持久化测试结果
+### Phase 3.5: Persist Test Results
 
-将完整测试结果写入 `.claude/test-results/`：
+Write full results to `.claude/test-results/`:
 
 ```bash
 RESULTS_DIR=".claude/test-results"
@@ -180,7 +176,7 @@ RUN_ID=$(date +%Y%m%d-%H%M%S)
 RESULT_FILE="$RESULTS_DIR/test-run-$RUN_ID.json"
 ```
 
-JSON 格式：
+JSON format:
 ```json
 {
   "runId": "20260511-230000",
@@ -190,93 +186,92 @@ JSON 格式：
   "passed": 42, "failed": 5, "skipped": 2, "blocked": 1,
   "passRate": "84%",
   "cases": [
-    {"id": "T001", "module": "登录", "name": "正常登录", "type": "Golden Path", "priority": "P0", "status": "PASS", "actual": "跳转到首页"}
+    {"id": "T001", "module": "Login", "name": "Normal login", "type": "Golden Path", "priority": "P0", "status": "PASS", "actual": "Redirected to home"}
   ],
   "bugs": [
-    {"id": "BUG-001", "title": "错误密码无提示", "severity": "HIGH", "caseId": "T002"}
+    {"id": "BUG-001", "title": "No error on wrong password", "severity": "HIGH", "caseId": "T002"}
   ]
 }
 ```
 
-同时更新 `$RESULTS_DIR/test-latest.json` 为最新结果副本。如用户指定 `--output <path>`，额外保存到指定路径。
+Update `$RESULTS_DIR/test-latest.json` as latest copy. If `--output <path>` used, also save to custom path.
 
-### Phase 4: 生成报告
+### Phase 4: Generate Report
 
 ```markdown
-## 测试报告 — {应用名} — {日期}
+## Test Report — {app} — {date}
 
-### 总览
+### Overview
 
-| 总用例 | 通过 | 失败 | 跳过 | 阻塞 | 通过率 |
-|--------|------|------|------|------|--------|
+| Total | Passed | Failed | Skipped | Blocked | Pass Rate |
+|-------|--------|--------|---------|---------|-----------|
 | 50 | 42 | 5 | 2 | 1 | 84% |
 
-### 按模块分布
+### By Module
 
-| 模块 | 总数 | 通过 | 失败 | 通过率 |
-|------|------|------|------|--------|
-| 登录 | 8 | 7 | 1 | 87.5% |
+| Module | Total | Passed | Failed | Pass Rate |
+|--------|-------|--------|--------|-----------|
+| Login | 8 | 7 | 1 | 87.5% |
 
-### 失败详情
+### Failure Details
 
-| 用例 ID | 模块 | 测试项 | 预期 | 实际 | 严重度 |
-|---------|------|--------|------|------|--------|
-| T002 | 登录 | 错误密码 | 显示错误提示 | 无提示，直接 500 | HIGH |
+| Case ID | Module | Test Item | Expected | Actual | Severity |
+|---------|--------|-----------|----------|--------|----------|
+| T002 | Login | Wrong password | Show error | No message, 500 error | HIGH |
 
-### Bug 列表
+### Bug List
 
-| ID | 标题 | 严重度 | 关联用例 | 复现步骤 |
-|----|------|--------|----------|----------|
-| BUG-001 | 错误密码无提示 | HIGH | T002 | 1. 输入正确用户名 2. 输入错误密码 3. 点击登录 |
+| ID | Title | Severity | Cases | Reproduction Steps |
+|----|-------|----------|-------|--------------------|
+| BUG-001 | No error on wrong password | HIGH | T002 | 1. Valid user 2. Wrong password 3. Click login |
 ```
 
-### Phase 4.5: 回归对比（--regression 模式）
+### Phase 4.5: Regression Comparison (--regression)
 
-当用户使用 `--regression` 时，在 Phase 4 之后追加：
+After Phase 4, when `--regression` is used:
 
-1. 读取 `.claude/test-results/test-latest.json` 作为基线
-2. 对比本次与上次结果，标记变化：
-   - `FIXED` — 上次失败，本次通过
-   - `REGRESSED` — 上次通过，本次失败
-   - `STILL_FAIL` — 持续失败
-   - `NEW` — 新增测试用例
+1. Read `.claude/test-results/test-latest.json` as baseline
+2. Compare current vs last results, mark changes:
+   - `FIXED` — failed last time, passed now
+   - `REGRESSED` — passed last time, failed now
+   - `STILL_FAIL` — continuously failing
+   - `NEW` — newly added test case
 
-输出格式：
-
+Output:
 ```markdown
-### 回归对比
+### Regression Comparison
 
-| 指标 | 上次 | 本次 | 变化 |
-|------|------|------|------|
-| 总用例 | 50 | 53 | +3 |
-| 通过率 | 84% | 91% | +7% |
-| 已修复 | - | 4 | |
-| 新失败 | - | 1 | |
+| Metric | Last Run | This Run | Change |
+|--------|----------|----------|--------|
+| Total | 50 | 53 | +3 |
+| Pass Rate | 84% | 91% | +7% |
+| Fixed | - | 4 | |
+| New Failures | - | 1 | |
 
-### 变化详情
+### Changes
 
-| 用例 ID | 上次状态 | 本次状态 | 变化 | 详情 |
-|---------|----------|----------|------|------|
-| T015 | FAIL | PASS | FIXED | BUG-003 已解决 |
-| T023 | PASS | FAIL | REGRESSED | 登录后页面白屏 |
+| Case ID | Last Status | This Status | Change | Details |
+|---------|-------------|-------------|--------|---------|
+| T015 | FAIL | PASS | FIXED | BUG-003 resolved |
+| T023 | PASS | FAIL | REGRESSED | Blank screen after login |
 ```
 
-## 严重度定义
+## Severity Definitions / 严重度定义
 
-| 严重度 | 定义 | 示例 |
-|--------|------|------|
-| BLOCKER | 阻塞测试流程，无法继续 | 应用无法启动、页面白屏、登录完全不可用 |
-| CRITICAL | 核心功能完全不可用 | 数据丢失、支付失败、保存失败 |
-| HIGH | 重要功能异常但可绕过 | 错误提示缺失、导出失败、搜索无效 |
-| MEDIUM | 非核心功能异常 | 样式错乱、次要按钮无效、文案错误 |
-| LOW | 体验问题 | 对齐偏差、加载动画缺失、间距不一致 |
+| Severity | Definition | Example |
+|----------|-----------|---------|
+| BLOCKER | Blocks test flow, cannot continue | App won't start, blank page, login completely broken |
+| CRITICAL | Core feature completely broken | Data loss, payment failure, save failure |
+| HIGH | Important feature broken but workaround exists | Missing error messages, export broken, search useless |
+| MEDIUM | Non-core feature anomaly | Style broken, secondary button dead, wrong text |
+| LOW | UX issue | Alignment off, missing loading animation, inconsistent spacing |
 
-## 注意事项
+## Notes / 注意事项
 
-- 测试计划生成后，应先展示给用户确认，再执行
-- 执行测试时如遇到 BLOCKER 级问题，立即停止并报告
-- 回归测试读取 `test-latest.json` 作为基线，对比标注变化
-- 无法自动执行的测试标记为 MANUAL，提供检查要点
-- 所有测试结果保存到 `.claude/test-results/`，方便后续回归对比
-- `--scope` / `--module` / `--priority` 参数可组合使用，缩小测试范围
-- 专项测试（--type）的失败项计入总通过率
+- Show test plan to user for confirmation before executing
+- Stop and report immediately on BLOCKER issues
+- Regression test reads `test-latest.json` as baseline
+- Non-automatable tests marked MANUAL with checkpoints
+- All results saved to `.claude/test-results/` for future regression comparison
+- `--scope` / `--module` / `--priority` can be combined to narrow scope
+- Specialized test (--type) failures count toward total pass rate

@@ -75,7 +75,7 @@
 
 ## [2.0.0] — 2026-05-11 (writing)
 
-### `/深度写作` 全新发布
+### `/deep-writing` 全新发布
 
 - **解耦内部依赖**
   - 默认输出 markdown 文件到 `writing-drafts/`

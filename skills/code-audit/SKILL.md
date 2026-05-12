@@ -9,244 +9,224 @@ tags: [code-review, security, audit, quality, sast]
 compatibility: [claude-code]
 ---
 
-# Code Audit
+# Code Audit / 代码审计
 
-对任意项目进行系统性代码审计。覆盖安全、架构、质量、性能四个维度。
+Systematic code audit for any project, covering security, architecture, quality, and performance.
+对任意项目进行系统性代码审计，覆盖安全、架构、质量、性能四个维度。
 
-## 触发条件
+## Trigger Conditions / 触发条件
 
-用户提到以下关键词时自动触发：code review, audit, security review, code quality, 代码审查, 安全审计, 代码质量, 找问题, 检查代码
-用户手动调用：`/code-audit`
+Auto-trigger on: code review, audit, security review, code quality, 代码审查, 安全审计, 代码质量, 找问题
+Manual: `/code-audit`
 
-## 作用域控制
+## Scope Control / 作用域控制
 
 ```
-/code-audit                    # 默认：智能扫描 Top 20 最大文件 + 入口文件
-/code-audit --scope src/       # 只审指定目录
-/code-audit --scope main.js    # 只审指定文件
-/code-audit --diff             # 只审最近 5 个 commit 的变更
-/code-audit --full             # 强制全量（所有源文件）
-/code-audit --sarif            # 同时输出 SARIF 2.1 JSON
-/code-audit --output report.md # 保存到指定路径（默认 .claude/audit-reports/）
-/code-audit --verify           # 验证上次审计的所有发现
-/code-audit --verify --finding 1 # 验证指定编号的发现
-/code-audit --sast             # 仅执行 SAST 扫描，不做 grep 审计
+/code-audit                    # Default: Smart scan — Top 20 largest + entry points
+/code-audit --scope src/       # Audit specific directory
+/code-audit --scope main.js    # Audit specific file
+/code-audit --diff             # Audit last 5 commits only
+/code-audit --full             # Full audit (all source files)
+/code-audit --sarif            # Also output SARIF 2.1 JSON
+/code-audit --output report.md # Save to custom path (default: .claude/audit-reports/)
+/code-audit --verify           # Verify all findings from last audit
+/code-audit --verify --finding 1 # Verify a specific finding by ID
+/code-audit --sast             # SAST-only scan, skip grep audit
 ```
 
-**智能扫描逻辑（默认模式）**：
+**Smart Scan (default mode)**:
+1. `find` all source files, excluding `node_modules/.git/dist/build/vendor`
+2. `wc -l` sort, take Top 20 largest
+3. Identify entry points: `main.js`, `app.py`, `app/main.py`, `cmd/`, `bin/`, `index.ts`, `src/main.*`
+4. Deduplicate and audit these files first
+5. If total files > 100, prompt: "Project is large (X files). Smart scan covers Top 20 + entries. Use `--full` for full audit."
 
-1. `find` 获取所有源文件，排除 `node_modules/.git/dist/build/vendor`
-2. `wc -l` 排序取 Top 20 最大文件
-3. 识别入口文件：`main.js`、`app.py`、`app/main.py`、`cmd/`、`bin/`、`index.ts`、`src/main.*`
-4. 去重合并后优先审计这些文件
-5. 总文件 >100 时提示用户："项目较大（X 个文件），当前智能扫描覆盖 Top 20 + 入口。如需全量审计，请使用 `--full`"
+**--diff mode**: `git diff --name-only HEAD~5` to get changed files, audit only those
 
-**--diff 模式**：`git diff --name-only HEAD~5` 获取变更文件，仅审计这些
+## Audit Modes / 审计模式
 
-## 审计模式
+Default: `full`
 
-根据用户需求选择模式，默认 `full`：
+| Mode | Trigger Keywords | Depth | Time |
+|------|-----------------|-------|------|
+| `quick` | 快速审计, 快扫, quick scan | Multi-language grep + structure | < 2 min |
+| `full` | 完整审计, 全面检查, deep audit | Smart scan + dataflow + architecture | 5-15 min |
+| `security` | 安全审计, security review | OWASP Top 10 + SAST | 5-10 min |
+| `quality` | 质量审计, 坏味道, code quality | Quality checklist | 3-8 min |
 
-| 模式 | 触发关键词 | 深度 | 耗时 |
-|------|-----------|------|------|
-| `quick` | 快速审计、快扫、看看有没有明显问题 | 多语言 grep + 结构分析 | < 2 分钟 |
-| `full` | 完整审计、全面检查、深度审计 | 智能扫描 + 数据流 + 架构 | 5-15 分钟 |
-| `security` | 安全审计、安全扫描、安全审查 | OWASP Top 10 专项 + SAST | 5-10 分钟 |
-| `quality` | 质量审计、代码质量、找坏味道 | 质量专项检查 | 3-8 分钟 |
+## Audit Workflow / 审计流程
 
-## 审计流程
+### Phase 0: Scope Resolution
 
-### Phase 0: 作用域解析
+Parse `--scope` / `--diff` / `--full` / `--sarif` parameters to determine audit scope.
 
-解析用户传入的 `--scope` / `--diff` / `--full` / `--sarif` 参数，确定审计范围。
-
-### Phase 1: 项目画像（所有模式）
+### Phase 1: Project Profile (all modes)
 
 ```bash
-# 项目结构
+# Project structure
 find . -type f \( -name '*.js' -o -name '*.ts' -o -name '*.py' -o -name '*.go' -o -name '*.rs' -o -name '*.java' \) \
   ! -path '*/node_modules/*' ! -path '*/.git/*' ! -path '*/dist/*' ! -path '*/build/*' ! -path '*/vendor/*' \
   | head -200
 
-# 文件规模（取 Top 20）
+# File sizes (Top 20)
 find . -type f \( -name '*.js' -o -name '*.ts' -o -name '*.py' -o -name '*.go' -o -name '*.rs' \) \
   ! -path '*/node_modules/*' ! -path '*/.git/*' ! -path '*/dist/*' ! -path '*/build/*' ! -path '*/vendor/*' \
   -exec wc -l {} + 2>/dev/null | sort -n | tail -20
 
-# 依赖
+# Dependencies
 cat package.json requirements.txt go.mod Cargo.toml pom.xml Gemfile 2>/dev/null | head -50
 ```
 
-### Phase 1.5: SAST 工具执行（security / full 模式，--sast 模式）
+### Phase 1.5: SAST Execution (security / full modes, or --sast)
 
-执行可用的 SAST 工具并解析结构化结果：
+Run available SAST tools and parse structured results:
 
 ```bash
-# Node.js — 捕获 JSON 输出
+# Node.js
 if [ -f package-lock.json ]; then
   npm audit --omit=dev --json 2>/dev/null
 elif [ -f yarn.lock ]; then
   yarn audit --groups dependencies --json 2>/dev/null
 fi
 
-# semgrep（通用，任何语言）
+# semgrep (any language)
 if command -v semgrep &>/dev/null; then
   semgrep scan --config=auto --json --quiet 2>/dev/null
 fi
 
 # Python
 if [ -f requirements.txt ]; then
-  if command -v pip-audit &>/dev/null; then
-    pip-audit --format=json 2>/dev/null
-  elif command -v safety &>/dev/null; then
-    safety check --json 2>/dev/null
-  fi
+  if command -v pip-audit &>/dev/null; then pip-audit --format=json 2>/dev/null
+  elif command -v safety &>/dev/null; then safety check --json 2>/dev/null; fi
 fi
 
 # Go
 if [ -f go.mod ]; then
-  if command -v govulncheck &>/dev/null; then
-    govulncheck ./... 2>&1
-  else
-    go vet ./... 2>&1
-  fi
+  if command -v govulncheck &>/dev/null; then govulncheck ./... 2>&1
+  else go vet ./... 2>&1; fi
 fi
 
 # Rust
-if [ -f Cargo.lock ] && command -v cargo-audit &>/dev/null; then
-  cargo audit 2>&1
-fi
+if [ -f Cargo.lock ] && command -v cargo-audit &>/dev/null; then cargo audit 2>&1; fi
 ```
 
-**结果解析**：
+**Result parsing**:
+- `npm audit --json` → `metadata.critical`, `metadata.high`, `vulnerabilities` keys
+- `semgrep --json` → `results[]` with `rule`, `severity`, `path`, `start.line`
+- `pip-audit --json` → dependency vulnerability list
+- `govulncheck` / `go vet` → parse text output for `vuln` / package names
+- `cargo audit` → `vulnerabilities` array
 
-- `npm audit --json` → 解析 `metadata.critical`、`metadata.high`、`vulnerabilities` keys
-- `semgrep --json` → 解析 `results[]` 中的 `rule`、`severity`、`path`、`start.line`
-- `pip-audit --json` → 解析依赖漏洞列表
-- `govulncheck` / `go vet` → 解析文本输出中的 `vuln` / 包名
-- `cargo audit` → 解析 `vulnerabilities` 数组
+**Merge into report**: Add a "Dependency Security" section. If no SAST tools available, note: "No SAST tools detected. Install `semgrep` (universal) for enhanced scanning."
 
-**报告合并**：将解析后的结构化结果作为"依赖安全"部分并入审计报告。格式：
+`--sast` mode skips grep audit and runs only this phase.
 
-```markdown
-### 依赖安全
-- npm audit: CRITICAL X, HIGH Y (Z 个已知漏洞)
-- semgrep: N 条告警（M 条 CRITICAL）
-- 未检测到 pip-audit，建议安装: `pip install pip-audit`
-```
+### Phase 2: Mode-Specific Checks
 
-若所有工具均未安装，在报告中标注"未安装 SAST 工具，建议安装 `npm audit`（Node.js 自带）或 `semgrep`（通用）"。
+#### quick Mode — Multi-language Fast Scan
 
-如用户使用 `--sast` 模式，则跳过 grep 审计，仅执行本阶段 SAST 扫描。
+Execute grep by language group:
 
-### Phase 2: 模式专项检查
-
-#### quick 模式 — 多语言快速扫描
-
-按语言分组执行 grep，快速发现明显问题：
-
-**JS/TS 组**：
+**JS/TS**:
 ```bash
-# 危险函数
+# Dangerous functions
 grep -rn 'eval(\|Function(\|exec(\|execSync(\|spawnSync(' --include='*.js' --include='*.ts' --include='*.jsx' --include='*.tsx' . 2>/dev/null
-# XSS 风险
+# XSS risk
 grep -rn 'innerHTML\|dangerouslySetInnerHTML\|outerHTML\|insertAdjacentHTML\|document\.write' --include='*.js' --include='*.ts' --include='*.jsx' --include='*.tsx' . 2>/dev/null
-# 路径操作
+# Path operations
 grep -rn 'shell\.openPath\|__dirname.*user\|path\.join.*req' --include='*.js' --include='*.ts' . 2>/dev/null
-# 同步阻塞
+# Sync blocking
 grep -rn 'readFileSync\|writeFileSync\|readdirSync\|statSync' --include='*.js' --include='*.ts' . 2>/dev/null | wc -l
-# 空 catch
+# Empty catch
 grep -rn 'catch.*{}' --include='*.js' --include='*.ts' . 2>/dev/null | head -20
 ```
 
-**Python 组**：
+**Python**:
 ```bash
-# 代码注入
+# Code injection
 grep -rn 'eval(\|exec(\|compile(' --include='*.py' . 2>/dev/null
-# 反序列化
+# Deserialization
 grep -rn 'pickle\.load\|yaml\.load(\|marshal\.loads' --include='*.py' . 2>/dev/null
-# 命令注入
-grep -rn 'os\.system(\|subprocess\.call(.*shell=True\|subprocess\.Popen(.*shell=True' --include='*.py' . 2>/dev/null
-# SQL 注入
+# Command injection
+grep -rn 'os\.system(\|subprocess\.call(.*shell=True' --include='*.py' . 2>/dev/null
+# SQL injection
 grep -rn '\.execute(.*f["\x27]\|\.execute(.*%.*\|\.execute(.*+' --include='*.py' . 2>/dev/null
-# 硬编码密钥
+# Hardcoded secrets
 grep -rn 'password\s*=\s*["\x27][^"\x27]\{3,\}["\x27]\|secret\s*=\s*["\x27][^"\x27]\{3,\}["\x27]' --include='*.py' . 2>/dev/null | grep -v test
 ```
 
-**Go 组**：
+**Go**:
 ```bash
-# 命令注入
-grep -rn 'exec\.Command(.*Sprintf\|exec\.Command(.*+\|exec\.Command(.*fmt\.' --include='*.go' . 2>/dev/null
-# SQL 注入
+# Command injection
+grep -rn 'exec\.Command(.*Sprintf\|exec\.Command(.*+' --include='*.go' . 2>/dev/null
+# SQL injection
 grep -rn '\.Query(.*Sprintf\|\.Exec(.*Sprintf\|\.Query(.*+' --include='*.go' . 2>/dev/null
-# 不安全的反序列化
-grep -rn 'json\.Unmarshal\|xml\.Unmarshal\|gob\.Decode' --include='*.go' . 2>/dev/null | head -20
-# unsafe 操作
+# Unsafe
 grep -rn 'unsafe\.Pointer\|unsafe\.Sizeof' --include='*.go' . 2>/dev/null
 ```
 
-**跨语言（所有）**：
+**Cross-language (all)**:
 ```bash
-# 硬编码密钥
+# Hardcoded API keys
 grep -rn 'api_key\s*=\s*["\x27][A-Za-z0-9]\{10,\}["\x27]\|API_KEY\s*=\s*["\x27][A-Za-z0-9]\{10,\}["\x27]' --include='*.js' --include='*.ts' --include='*.py' --include='*.go' --include='*.env' . 2>/dev/null | grep -v 'test\|spec\|example\|placeholder\|TODO\|CHANGE_ME\|your_\|xxx'
-# CSP / 安全配置
+# CSP / security config
 grep -rn 'Content-Security-Policy\|sandbox.*false\|nodeIntegration.*true\|webSecurity.*false' --include='*.js' --include='*.ts' --include='*.py' --include='*.go' . 2>/dev/null
 ```
 
-对 grep 结果逐条分析，标记误报。
+Analyze grep results line by line, flag false positives.
 
-#### full 模式 — 深度审计
+#### full Mode — Deep Audit
 
-在 quick 模式基础上，增加智能扫描文件的深度分析：
+On top of quick mode, add:
 
-1. **数据流分析**: 追踪用户输入（URL params、表单、IPC 参数、API 请求体、CLI 参数）如何流到敏感操作（fs、child_process、exec、网络请求、数据库）。读关键文件的 Top 20 文件内容，追踪 tainted data flow
-2. **架构审查**: 识别 God Object（>1500 行单文件）、循环依赖（import/require 环）、缺失分层（UI 直接调 DB）
-3. **性能分析**: 识别 O(n²) 循环（嵌套 for/while 中的线性查找）、未缓存的重计算、缺失 debounce/throttle、过度 DOM 操作
-4. **错误处理覆盖**: 统计 try/catch 比例、识别吞异常的 catch、无错误传播的 async 调用、无超时保护的 I/O
-5. **命名一致性**: 同一概念是否多种命名、缩写是否统一、布尔变量是否以 is/has/can 开头
+1. **Dataflow Analysis**: Trace user input (URL params, forms, IPC params, API bodies, CLI args) to sensitive operations (fs, child_process, exec, network, DB). Read Top 20 key files, trace tainted data flow
+2. **Architecture Review**: Identify God Objects (>1500 lines), circular dependencies (import/require cycles), missing layers (UI calling DB directly)
+3. **Performance**: O(n²) loops (nested for/while with linear search), un-cached recomputation, missing debounce/throttle, excessive DOM ops
+4. **Error Handling Coverage**: try/catch ratio, swallowed exceptions, async calls without error propagation, I/O without timeout protection
+5. **Naming Consistency**: Same concept with different names, inconsistent abbreviations, boolean vars should start with is/has/can
 
-#### security 模式 — OWASP Top 10 专项
+#### security Mode — OWASP Top 10
 
-加载 `references/security-checklist.md` 逐项检查，结合 SAST 结果：
+Load `references/security-checklist.md`, combine with SAST results:
 
-1. **A01: 注入** — SQL、命令、HTML、模板、反序列化
-2. **A02: 认证失败** — 硬编码凭据、弱加密、会话管理、JWT 配置
-3. **A03: 数据泄露** — 敏感信息日志打印、未加密传输、错误详情暴露
-4. **A04: 不安全设计** — 缺少速率限制、CSRF 保护、幂等性
-5. **A05: 安全配置缺失** — CSP、sandbox、CORS、HTTPS、安全 headers
-6. **A06: 脆弱组件** — SAST 结果 + 过期依赖 + 已知 CVE
-7. **A07: 认证与访问控制** — 越权操作、未验证角色、水平越权
-8. **A08: 软件与数据完整性** — CI/CD 管道安全、签名验证、序列化
-9. **A09: 安全日志与监控** — 空 catch、无错误上报、安全事件无审计
-10. **A10: SSRF** — 用户可控 URL 请求、内网地址访问
+1. **A01: Injection** — SQL, command, HTML, template, deserialization
+2. **A02: Broken Authentication** — hardcoded credentials, weak crypto, session management, JWT
+3. **A03: Data Exposure** — sensitive info in logs, unencrypted transport, error details exposed
+4. **A04: Insecure Design** — missing rate limiting, CSRF protection, idempotency
+5. **A05: Security Misconfiguration** — CSP, sandbox, CORS, HTTPS, security headers
+6. **A06: Vulnerable Components** — SAST results + outdated dependencies + known CVEs
+7. **A07: Auth & Access Control** — privilege escalation, unverified roles, horizontal escalation
+8. **A08: Integrity Failures** — CI/CD pipeline security, signature verification, serialization
+9. **A09: Logging & Monitoring** — empty catch, no error reporting, no security event auditing
+10. **A10: SSRF** — user-controlled URL requests, internal network access
 
-#### quality 模式 — 代码质量专项
+#### quality Mode — Code Quality
 
-加载 `references/quality-checklist.md` 逐项检查：
+Load `references/quality-checklist.md`:
 
-1. **死代码** — 定义但未调用的函数、未使用的变量/import、注释掉的代码块
-2. **重复代码** — 相同逻辑在多个文件出现（>10 行相似）
-3. **命名不一致** — 同一概念多种命名、缩写混乱、布尔命名不规范
-4. **错误处理** — 空 catch、吞异常、无错误传播、无 fallback
-5. **大文件** — >1000 行需拆分、>2000 行必须拆分、函数 >50 行
-6. **同步阻塞** — 主线程/事件循环上的同步 I/O、无异步化
-7. **性能** — O(n²) 循环、未缓存重计算、过度重绘、无虚拟列表
-8. **复杂度** — 嵌套 >4 层、圈复杂度 >10、函数参数 >5
+1. **Dead Code** — defined but never called functions, unused variables/imports, commented-out code blocks
+2. **Duplicate Code** — same logic across multiple files (>10 lines similar)
+3. **Naming Inconsistency** — same concept multiple names, confusing abbreviations, boolean naming
+4. **Error Handling** — empty catch, swallowed exceptions, no error propagation, no fallback
+5. **Large Files** — >1000 lines should split, >2000 lines must split, functions >50 lines
+6. **Sync Blocking** — sync I/O on main thread/event loop, no async
+7. **Performance** — O(n²) loops, un-cached heavy computation, excessive re-renders, no virtual lists
+8. **Complexity** — nesting >4 levels, cyclomatic complexity >10, function params >5
 
-### Phase 3: 发现过滤与去重
+### Phase 3: Filtering & Deduplication
 
-输出前执行：
+Before output:
 
-1. **置信度过滤**: 每条发现评估置信度 0-100
-   - < 80 → 自动过滤，不输出
-   - >= 80 → 保留
-2. **去重合并**: 同一问题类型在多个文件中出现 → 合并为一条，标注"影响 N 个文件"，仅列出 Top 3 具体位置
-3. **测试文件标注**: 仅在 test/spec 文件中发现的问题 → 标注为 `TEST_SCOPE`，单独列出，不计入安全评分
-4. **排序**: 按严重度（CRITICAL > HIGH > MEDIUM > LOW），同严重度按置信度降序
+1. **Confidence Filter**: Score each finding 0-100
+   - < 80 → auto-filtered, not output
+   - >= 80 → retained
+2. **Deduplicate**: Same issue type across multiple files → merge into one, note "affects N files", list Top 3 locations only
+3. **Test File Annotation**: Issues found only in test/spec files → labeled `TEST_SCOPE`, listed separately, excluded from security score
+4. **Sort**: By severity (CRITICAL > HIGH > MEDIUM > LOW), then by confidence descending
 
-### Phase 4: 输出审计报告
+### Phase 4: Output Report
 
-**持久化报告路径计算**（审计开始时执行）：
+**Persistent report path** (computed at audit start):
 
 ```bash
 REPORT_DATE=$(date +%Y%m%d-%H%M%S)
@@ -255,73 +235,63 @@ mkdir -p "$REPORT_DIR"
 REPORT_FILE="$REPORT_DIR/audit-report-$REPORT_DATE.md"
 ```
 
-**输出到对话**后，将完整报告内容写入 `$REPORT_FILE`，并更新 `$REPORT_DIR/audit-latest.md` 为最新报告的副本：
+After outputting to conversation, write full report to `$REPORT_FILE`, and update `$REPORT_DIR/audit-latest.md` as a copy:
 
 ```bash
-# 写入报告文件
-# （将审计报告全文写入 $REPORT_FILE）
-
-# 维护 latest 副本
 cp "$REPORT_FILE" "$REPORT_DIR/audit-latest.md" 2>/dev/null
-
-# 如用户指定了 --output 路径，额外复制
-if [ -n "$OUTPUT_PATH" ]; then
-  cp "$REPORT_FILE" "$OUTPUT_PATH"
-fi
+if [ -n "$OUTPUT_PATH" ]; then cp "$REPORT_FILE" "$OUTPUT_PATH"; fi
 ```
-
-如果用户使用了 `--output <path>` 参数，额外将报告保存到指定路径。
 
 ```markdown
-## 代码审计报告 — {项目名} — {日期}
+## Code Audit Report — {project} — {date}
 
-### 项目画像
-- 审计范围: {scope 描述}
-- 总文件: X（智能扫描: Top N 最大文件 + 入口文件）| 总行数: X
-- 主要语言: {languages}
-- 依赖数: X | SAST 告警: X
+### Project Profile
+- Scope: {scope description}
+- Total files: X (smart scan: Top N largest + entry points) | Total lines: X
+- Languages: {languages}
+- Dependencies: X | SAST alerts: X
 
-### 发现 (CRITICAL + HIGH)
+### Findings (CRITICAL + HIGH)
 
-| # | 严重度 | 置信度 | CWE | 文件:行号 | 问题 | 利用场景 | 修复 | 工时 |
-|---|--------|--------|-----|-----------|------|----------|------|------|
-| 1 | CRITICAL | 95 | CWE-22 | main.js:912 | 路径遍历 | 用户输入 ../../etc/passwd 读取任意文件 | path.resolve + startsWith 校验 | <15min |
+| # | Severity | Confidence | CWE | File:Line | Issue | Exploit Scenario | Fix | Effort |
+|---|----------|------------|-----|-----------|-------|------------------|-----|--------|
+| 1 | CRITICAL | 95 | CWE-22 | main.js:912 | Path traversal | User input ../../etc/passwd reads arbitrary files | path.resolve + startsWith | <15min |
 
-### 发现 (MEDIUM + LOW)
+### Findings (MEDIUM + LOW)
 
-| # | 严重度 | 置信度 | CWE | 文件:行号 | 问题 | 修复 | 工时 |
-|---|--------|--------|-----|-----------|------|------|------|
+| # | Severity | Confidence | CWE | File:Line | Issue | Fix | Effort |
+|---|----------|------------|-----|-----------|-------|-----|--------|
 
-### 依赖安全
-{SAST 工具结果摘要，或"未检测到已知漏洞"}
+### Dependency Security
+{SAST tool summary, or "No vulnerabilities detected"}
 
-### 统计
+### Statistics
 - CRITICAL: X | HIGH: X | MEDIUM: X | LOW: X
-- 置信度过滤: X 条低于 80，已自动过滤
-- 去重合并: X 条相似问题合并为 Y 条
-- 安全评分: X/100 | 质量评分: X/100
+- Confidence filtered: X findings below 80, auto-filtered
+- Deduplication: X similar issues merged into Y
+- Security score: X/100 | Quality score: X/100
 
-### 修复路线图
-1. **立即修复** (CRITICAL, 预计 X 小时): ...
-2. **本迭代修复** (HIGH, 预计 X 小时): ...
-3. **规划修复** (MEDIUM, 预计 X 小时): ...
-4. **优化建议** (LOW): ...
+### Remediation Roadmap
+1. **Immediate** (CRITICAL, est. X hours): ...
+2. **This sprint** (HIGH, est. X hours): ...
+3. **Planned** (MEDIUM, est. X hours): ...
+4. **Optimization** (LOW): ...
 ```
 
-### SARIF 输出 (--sarif 模式)
+### SARIF Output (--sarif)
 
-同时输出 SARIF 2.1.0 格式 JSON，可直接接入 CI/CD：
+Also output SARIF 2.1.0 JSON for CI/CD integration:
 
 ```json
 {
   "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
   "version": "2.1.0",
   "runs": [{
-    "tool": { "driver": { "name": "claude-code-audit", "version": "1.0.0", "informationUri": "https://github.com/lingsheng/claude-code-audit" } },
+    "tool": { "driver": { "name": "claude-code-audit", "version": "1.0.0", "informationUri": "https://github.com/opszn/skills" } },
     "results": [{
       "ruleId": "CWE-22",
       "level": "error",
-      "message": { "text": "路径遍历：open-file handler 无路径验证" },
+      "message": { "text": "Path traversal: open-file handler lacks path validation" },
       "locations": [{
         "physicalLocation": {
           "artifactLocation": { "uri": "main.js" },
@@ -333,63 +303,59 @@ fi
 }
 ```
 
-### Phase 5: 修复验证（--verify 模式）
+### Phase 5: Fix Verification (--verify)
 
-当用户使用 `--verify` 参数时，执行此阶段：
+When `--verify` is used:
 
-1. 读取 `.claude/audit-reports/audit-latest.md`，解析发现列表（表格中的 # 编号、CWE、文件:行号、问题类型）
-2. 针对每条发现重新执行对应的 grep 检查：
+1. Read `.claude/audit-reports/audit-latest.md`, parse findings table (# ID, CWE, file:line, issue type)
+2. Re-run corresponding grep check for each finding:
 
-| CWE 类型 | 验证命令 | 判定标准 |
-|----------|----------|----------|
-| CWE-22 路径遍历 | `grep -n 'path\.resolve\|startsWith\|realpath' <file>` | 包含校验逻辑 → FIXED |
-| CWE-79 XSS | `grep -n 'innerHTML\|dangerouslySetInnerHTML\|document\.write' <file>` | 无直接赋值或已 sanitize → FIXED |
-| CWE-78 命令注入 | `grep -n 'exec(\|execSync(\|spawn.*shell.*true' <file>` | 使用参数数组/无拼接 → FIXED |
-| CWE-89 SQL 注入 | `grep -n '\.query(.*\+\|\.execute(.*\+\|\.query(.*Sprintf' <file>` | 使用参数化查询 → FIXED |
-| CWE-798 硬编码密钥 | `grep -n 'password.*=.*["\x27]\|secret.*=.*["\x27]\|api_key.*=.*["\x27]' <file>` | 无硬编码匹配 → FIXED |
-| CWE-391 空 catch | `grep -n 'catch.*{}' <file>` | 无空 catch → FIXED |
+| CWE Type | Verification Command |判定 |
+|----------|---------------------|------|
+| CWE-22 Path traversal | `grep -n 'path\.resolve\|startsWith\|realpath' <file>` | Validation logic present → FIXED |
+| CWE-79 XSS | `grep -n 'innerHTML\|dangerouslySetInnerHTML\|document\.write' <file>` | No direct assignment or sanitized → FIXED |
+| CWE-78 Command injection | `grep -n 'exec(\|execSync(\|spawn.*shell.*true' <file>` | Uses param array / no concat → FIXED |
+| CWE-89 SQL injection | `grep -n '\.query(.*\+\|\.execute(.*\+\|\.query(.*Sprintf' <file>` | Uses parameterized queries → FIXED |
+| CWE-798 Hardcoded secret | `grep -n 'password.*=.*["\x27]\|secret.*=.*["\x27]\|api_key.*=.*["\x27]' <file>` | No hardcoded match → FIXED |
+| CWE-391 Empty catch | `grep -n 'catch.*{}' <file>` | No empty catch → FIXED |
 
-3. 如用户使用 `--verify --finding <N>`，只验证指定编号的发现
+3. If `--verify --finding <N>`, only verify that specific finding
 
-输出格式：
-
+Output:
 ```markdown
-### 修复验证结果
+### Fix Verification Results
 
-| 编号 | CWE | 问题 | 文件 | 状态 | 详情 |
-|------|-----|------|------|------|------|
-| #1 | CWE-22 | 路径遍历 | main.js | FIXED | 已添加 path.resolve + startsWith 校验 |
-| #2 | CWE-79 | XSS | app.js | FAILING | line 1024 仍存在 innerHTML 直接赋值 |
+| ID | CWE | Issue | File | Status | Details |
+|----|-----|-------|------|--------|---------|
+| #1 | CWE-22 | Path traversal | main.js | FIXED | Added path.resolve + startsWith validation |
+| #2 | CWE-79 | XSS | app.js | FAILING | line 1024 still has innerHTML direct assignment |
 ```
 
-状态定义：
-- `FIXED`：原问题已修复，grep 未命中或校验逻辑存在
-- `FAILING`：原问题仍存在，grep 命中相同模式
-- `MODIFIED`：代码有变化但无法自动判定，需人工复核
+Status: `FIXED` (resolved), `FAILING` (still present), `MODIFIED` (changed but needs manual review)
 
-## 严重度定义
+## Severity Definitions / 严重度定义
 
-| 严重度 | 定义 | 示例 | CWE 参考 |
-|--------|------|------|----------|
-| CRITICAL | 可被外部利用的安全漏洞，直接导致数据泄露、RCE 或完整系统接管 | 路径遍历、XSS、命令注入、SQL 注入、硬编码密钥 | CWE-22, CWE-79, CWE-78, CWE-89, CWE-798 |
-| HIGH | 高风险问题，可能被利用或导致数据损坏/服务不可用 | 绕过式路径验证、markdown XSS、无 CSP、未加密传输 | CWE-601, CWE-79, CWE-693, CWE-319 |
-| MEDIUM | 影响质量或性能的问题，不会直接被外部利用 | 空 catch 吞异常、大文件、同步阻塞、重复代码 | CWE-391, CWE-1079, CWE-400 |
-| LOW | 代码风格或优化建议 | 命名不一致、缺少注释、魔法数字 | CWE-1076 |
+| Severity | Definition | Example | CWE Ref |
+|----------|-----------|---------|---------|
+| CRITICAL | Exploitable security vulnerability, direct data leak / RCE / full system compromise | Path traversal, XSS, command injection, SQL injection, hardcoded secrets | CWE-22, CWE-79, CWE-78, CWE-89, CWE-798 |
+| HIGH | High risk, may be exploitable or cause data corruption / service unavailability | Bypassed path validation, markdown XSS, no CSP, unencrypted transport | CWE-601, CWE-79, CWE-693, CWE-319 |
+| MEDIUM | Quality/performance impact, not directly externally exploitable | Empty catch swallowing exceptions, large files, sync blocking, duplicate code | CWE-391, CWE-1079, CWE-400 |
+| LOW | Code style or optimization suggestions | Naming inconsistency, missing comments, magic numbers | CWE-1076 |
 
-## 置信度评分参考
+## Confidence Scoring / 置信度评分
 
-| 分数 | 含义 |
-|------|------|
-| 95-100 | 明确的漏洞，可直接利用，无误报 |
-| 85-94 | 高概率问题，需要少量上下文确认 |
-| 80-84 | 可能是问题，需要人工复核 |
-| < 80 | 可能误报，自动过滤 |
+| Score | Meaning |
+|-------|---------|
+| 95-100 | Clear vulnerability, directly exploitable, no false positive |
+| 85-94 | High probability issue, needs minor context to confirm |
+| 80-84 | Possible issue, needs manual review |
+| < 80 | Likely false positive, auto-filtered |
 
-## 注意事项
+## Notes / 注意事项
 
-- 不要修改用户代码，仅输出报告
-- 对于 --diff 模式，关注变更引入的新问题，不报告已有的
-- 审计 Web 项目时，额外检查 CSP、CORS、HTTPS 配置
-- 审计 Electron/桌面应用时，额外关注 main/preload/renderer 安全边界
-- 审计 CLI 项目时，检查参数解析、错误退出码、管道安全
-- 大项目（>100 文件）默认智能扫描，提示用户可用 --full 全量审计
+- Never modify user code, output report only
+- For --diff mode, focus on newly introduced issues, don't report existing ones
+- Web projects: extra check CSP, CORS, HTTPS config
+- Electron/desktop apps: extra attention to main/preload/renderer security boundary
+- CLI projects: check argument parsing, error exit codes, pipe safety
+- Large projects (>100 files): default to smart scan, prompt about `--full` for full audit
