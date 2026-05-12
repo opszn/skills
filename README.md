@@ -9,14 +9,14 @@ Claude Code skills plugin — **code audit** + **functional testing**, for web, 
 ### Method 1: From GitHub (Recommended)
 
 ```bash
-/plugin install github:opszn/claude-code-audit
+/plugin install github:opszn/skills
 ```
 
 ### Method 2: Local Install
 
 ```bash
-git clone https://github.com/opszn/claude-code-audit.git
-cd claude-code-audit
+git clone https://github.com/opszn/skills.git
+cd skills
 /plugin install ./
 ```
 
@@ -174,7 +174,7 @@ Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 ### 安装
 
 ```bash
-/plugin install github:opszn/claude-code-audit
+/plugin install github:opszn/skills
 ```
 
 ### `/code-audit` — 代码审计
